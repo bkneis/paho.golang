@@ -17,6 +17,9 @@ cover_browser:
 	go tool cover -html=/tmp/packets_coverage.out
 	go tool cover -html=/tmp/paho_coverage.out
 
+download:
+	go mod download
+
 build_chat:
 	go build -o ./bin/chat ./paho/cmd/chat
 
