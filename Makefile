@@ -17,6 +17,7 @@ cover_browser:
 	go tool cover -html=/tmp/packets_coverage.out
 	go tool cover -html=/tmp/paho_coverage.out
 
+.PHONY: download
 download:
 	go mod download
 
@@ -35,4 +36,5 @@ build_pub:
 build_sub:
 	go build -o ./bin/stdoutsub ./paho/cmd/stdoutsub
 
+.PHONY: build
 build: build_chat build_rpc build_pub build_sub build_rpc_cm
