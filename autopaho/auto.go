@@ -208,7 +208,12 @@ func NewConnection(ctx context.Context, cfg ClientConfig) (*ConnectionManager, e
 				break mainLoop // Only occurs when context is cancelled
 			}
 			c.mu.Lock()
+			r := cli.Router
+			if c.cli != nil && c.cli.Router != nil {
+				r = c.cli.Router
+			}
 			c.cli = cli
+			c.cli.Router = r
 			c.mu.Unlock()
 			close(c.connUp)
 
@@ -325,4 +330,31 @@ func (c *ConnectionManager) Publish(ctx context.Context, p *paho.Publish) (*paho
 		return nil, ConnectionDownError
 	}
 	return cli.Publish(ctx, p)
+}
+
+// UseRouter executes a function that is passed the client's Router
+// We pass a function to UseRouter instead of returning a reference to cli.Router to ensure we lock and unlock
+// the mutex protecting it's access
+func (c *ConnectionManager) UseRouter(fn func(paho.Router) error) error {
+	c.mu.Lock()
+	cli := c.cli
+	c.mu.Unlock()
+
+	if cli == nil {
+		return ConnectionDownError
+	}
+
+	return fn(cli.Router)
+}
+
+// GetClientID returns the client's ID in a memory safe manner
+func (c *ConnectionManager) GetClientID() string {
+	c.mu.Lock()
+	cli := c.cli
+	c.mu.Unlock()
+
+	if cli == nil {
+		return ""
+	}
+	return cli.ClientID
 }

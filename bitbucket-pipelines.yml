@@ -1,0 +1,63 @@
+# Bitbucket build pipeline.
+
+# === Always
+# Build source code
+# Run unit tests
+
+# === When merged to master
+# Tag branch
+
+pipelines:
+  default:
+    - step: &build
+        name: Build source code
+        image:
+          name: 065145189516.dkr.ecr.us-east-2.amazonaws.com/go-cross-builder:1.18.3-alpine3.15-1.0.0
+          aws:
+            oidc-role: arn:aws:iam::065145189516:role/pipelines-ecr-access
+        oidc: true
+        caches:
+          - go
+        script:
+          - make download
+          - make build
+
+    - step: &test
+        name: Run tests
+        image:
+          name: 065145189516.dkr.ecr.us-east-2.amazonaws.com/go-cross-builder:1.18.3-alpine3.15-1.0.0
+          aws:
+            oidc-role: arn:aws:iam::065145189516:role/pipelines-ecr-access
+        oidc: true
+        caches:
+          - go
+        script:
+          - make test
+
+  branches:
+    # for an integration or master branch, do the build as usual but also tag
+    # provided that a tag exists on the HEAD revision
+    'master':
+    - step: *build
+    - step: *test
+    - step:
+        name: Tag version
+        image:
+          name: 065145189516.dkr.ecr.us-east-2.amazonaws.com/bamboo-script:2.0.2
+          aws:
+            oidc-role: arn:aws:iam::065145189516:role/pipelines-ecr-access
+        oidc: true
+        script:
+          - git fetch --tags
+          - git config user.email certbot@veea.io
+          - git config user.name certbot
+          - git tag -a $(cat version) -m "[CI] Version tag for $(cat version)"
+          - git push origin $(cat version)
+
+# Terminate any stage if it continues for more than 10 minutes
+options:
+  max-time: 10
+
+definitions:
+  caches:
+    go: /root/.cache/go-build
