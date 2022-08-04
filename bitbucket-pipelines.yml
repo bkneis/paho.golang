@@ -42,16 +42,17 @@ pipelines:
     - step: *test
     - step:
         name: Tag version
-        image: 
+        image:
           name: 065145189516.dkr.ecr.us-east-2.amazonaws.com/bamboo-script:2.0.2
-          aws: 
+          aws:
             oidc-role: arn:aws:iam::065145189516:role/pipelines-ecr-access
         oidc: true
         script:
           - git fetch --tags
           - git config user.email certbot@veea.io
           - git config user.name certbot
-          - bump_version.bash 0.0.0
+          - git tag -a $(cat version) -m "[CI] Version tag for $(cat version)"
+          - git push origin $(cat version)
 
 # Terminate any stage if it continues for more than 10 minutes
 options:
