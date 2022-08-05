@@ -210,6 +210,7 @@ func NewConnection(ctx context.Context, cfg ClientConfig) (*ConnectionManager, e
 			c.mu.Lock()
 			r := cli.Router
 			if c.cli != nil && c.cli.Router != nil {
+				cfg.Debug.Println("copying over existing client.Router to new client")
 				r = c.cli.Router
 			}
 			c.cli = cli
@@ -333,13 +334,14 @@ func (c *ConnectionManager) Publish(ctx context.Context, p *paho.Publish) (*paho
 // the mutex protecting it's access
 func (c *ConnectionManager) UseClient(fn func(*paho.Client) error) error {
 	c.mu.Lock()
-	defer c.mu.Unlock()
+	cli := c.cli
+	c.mu.Unlock()
 
-	if c.cli == nil {
+	if cli == nil {
 		return ConnectionDownError
 	}
 
-	return fn(c.cli)
+	return fn(cli)
 }
 
 // GetClientID returns the client's ID in a memory safe manner
